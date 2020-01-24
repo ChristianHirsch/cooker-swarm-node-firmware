@@ -1,4 +1,5 @@
 #include <zephyr.h>
+#include <kernel.h>
 #include <zephyr/types.h>
 #include <stddef.h>
 #include <string.h>
@@ -11,12 +12,15 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
+#include "cooker.h"
 #include "uuid.h"
 
 #include "cos.h"
 
 u8_t input_io_notify_enabled = 0;
 u8_t input_power_notify_enabled = 0;
+
+extern struct k_mutex cooker_control_mutex;
 
 static void cooker_input_io_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				 u16_t value)
@@ -43,7 +47,7 @@ static void cooker_input_power_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 static ssize_t read_cooker_input_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset)
 {
-	u8_t value;
+	u8_t value = get_input_power_level();
 	int err = bt_gatt_attr_read(conn, attr, buf, len, offset, &value,
 				 sizeof(u8_t));
 
@@ -62,6 +66,13 @@ static ssize_t write_cooker_output_io_level(struct bt_conn *conn, const struct b
 
         memcpy((&value) + offset, buf, len);
 
+        if (k_mutex_lock(&cooker_control_mutex, K_NO_WAIT) == 0)
+        {
+        	value = (value == 1);
+        	set_output_io_level(value);
+        	k_mutex_unlock(&cooker_control_mutex);
+        }
+
         return len;
 }
 
@@ -77,22 +88,12 @@ static ssize_t write_cooker_output_power_level(struct bt_conn *conn, const struc
 
         memcpy((&value) + offset, buf, len);
 
-		set_output_power_level(value);
+        if (k_mutex_lock(&cooker_control_mutex, K_NO_WAIT) == 0)
+        {
+        	set_output_power_level(value);
 
-        return len;
-}
-
-static ssize_t write_cooker_output_auto_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
-                        const void *buf, u16_t len, u16_t offset,
-                        u8_t flags)
-{
-        u8_t value;
-
-        if (offset + len > sizeof(value)) {
-                return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+        	k_mutex_unlock(&cooker_control_mutex);
         }
-
-        memcpy((&value) + offset, buf, len);
 
         return len;
 }
@@ -120,12 +121,6 @@ BT_GATT_SERVICE_DEFINE(cooker_service_cvs,
 			       BT_GATT_CHRC_WRITE,
 			       BT_GATT_PERM_WRITE, NULL, write_cooker_output_power_level, NULL),
 	BT_GATT_CCC(NULL, NULL),
-/* 	
-	BT_GATT_CHARACTERISTIC(BT_UUID_COS_OUTPUT_AUTO,
-			       BT_GATT_CHRC_WRITE,
-			       BT_GATT_PERM_WRITE, NULL, write_cooker_output_auto_level, NULL),
-	BT_GATT_CCC(NULL, NULL),
-*/
 );
 
 void cooker_service_init(void)

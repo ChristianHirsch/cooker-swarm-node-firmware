@@ -24,7 +24,7 @@ extern "C" {
 
 void cooker_init();
 
-u16_t get_input_power_level();
+u8_t get_input_power_level();
 
 void set_output_power_level(u8_t level);
 u8_t get_output_power_level();

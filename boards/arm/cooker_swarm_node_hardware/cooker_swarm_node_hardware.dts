@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2017 Linaro Limited
+ * Copyright (c) 2020 Christian Hirsch
  *
  * SPDX-License-Identifier: Apache-2.0
  */
@@ -8,7 +8,7 @@
 #include <nordic/nrf52840_qiaa.dtsi>
 
 / {
-	model = "TUW cooker-swarm-node-hardware";
+	model = "cooker-swarm-node-hardware";
 	compatible = "nordic,nrf52840-qiaa",
 			   "nordic,nrf52840";
 

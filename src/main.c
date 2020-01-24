@@ -23,10 +23,11 @@
 #include <bluetooth/uuid.h>
 #include <bluetooth/gatt.h>
 
-#include "cts.h"
+#include "cooker.h"
 #include "cos.h"
+#include "cts.h"
 
-#include "settings.h"
+#include "config.h"
 
 #include <drivers/pwm.h>
 
@@ -179,30 +180,24 @@ void main(void)
     u32_t entry = k_uptime_get_32();
     u32_t exit = entry;
 
-	u32_t max_period = 1000000;	// 1000000ns = 1 kHz
-	u32_t period;
-
 	err = bt_enable(bt_ready);
 	if (err) {
-		//LOG_ERR("Bluetooth init failed (err %d)", err);
+		LOG_ERR("Bluetooth init failed (err %d)", err);
 		//return;
 	}
-
     bt_conn_cb_register(&conn_callbacks);
 
     struct device *adc_dev = device_get_binding(DT_ALIAS_ADC_0_LABEL);
 	if (!adc_dev) {
-		LOG_ERR("Cannot find %s!\n", DT_ALIAS_ADC_0_LABEL);
+		LOG_ERR("Cannot find %s!", DT_ALIAS_ADC_0_LABEL);
 		return;
 	}
 
 	struct device *pwm_dev = device_get_binding(PWM_DRIVER);
 	if (!pwm_dev) {
-		LOG_ERR("Cannot find %s!\n", PWM_DRIVER);
+		LOG_ERR("Cannot find %s!", PWM_DRIVER);
 		return;
 	}
-
-	period = 0;
 
 	cooker_init();
 
@@ -215,17 +210,6 @@ void main(void)
 		k_sleep(time_to_sleep);
 
 		entry = k_uptime_get_32();
-
-		/*  * /
-		if (pwm_pin_set_nsec(pwm_dev, STATUS_LED_CHANNEL,
-					max_period, period)) {
-			LOG_ERR("pwm pin set fails\n");
-			return;
-		}
-		*/
-
-		period = (period + 5000) % max_period;
-
         exit = k_uptime_get_32();
 	}
 }
