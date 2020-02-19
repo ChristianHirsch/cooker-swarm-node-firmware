@@ -1,12 +1,4 @@
-/** @file
- *  @brief BAS Service sample
- */
 
-/*
- * Copyright (c) 2016 Intel Corporation
- *
- * SPDX-License-Identifier: Apache-2.0
- */
 
 #include <zephyr/types.h>
 #include <stddef.h>
@@ -61,11 +53,6 @@ BT_GATT_SERVICE_DEFINE(cts_svc,
 			       BT_GATT_PERM_READ, read_cts, NULL, &time),
 	BT_GATT_CCC(cts_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 );
-
-void cts_init(void)
-{
-	//bt_gatt_service_register(&cts_svc);
-}
 
 int cts_notify(u32_t _timestamp)
 {

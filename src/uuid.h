@@ -30,3 +30,9 @@
  *  @brief COS Characteristic Output Power State
  */
 #define BT_UUID_COS_OUTPUT_POWER		BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x77e12a04, 0x37af, 0x11ea, 0xa7a1, 0x507b9de20712))
+
+/** @def BT_UUID_COS_REMOTE_TEMP_PROBE
+ *  @brief COS Characteristic remote temperature probe
+ */
+#define BT_UUID_COS_REMOTE_TEMP_PROBE	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x77e12a05, 0x37af, 0x11ea, 0xa7a1, 0x507b9de20712))
+
