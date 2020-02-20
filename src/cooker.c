@@ -10,6 +10,7 @@
 #include <drivers/pwm.h>
 
 #include "config.h"
+#include "cos.h"
 #include "pid.h"
 #include "remote_temp.h"
 
@@ -44,12 +45,12 @@ K_THREAD_STACK_DEFINE(is_on_loop_stack, STACK_SIZE);
 struct k_thread is_on_loop_data;
 k_tid_t is_on_loop_tid;
 
-K_THREAD_STACK_DEFINE(auto_control_loop_stack, STACK_SIZE);
-struct k_thread auto_control_loop_data;
-k_tid_t auto_control_loop_tid;
+K_THREAD_STACK_DEFINE(cooker_control_loop_stack, STACK_SIZE);
+struct k_thread cooker_control_loop_data;
+k_tid_t cooker_control_loop_tid;
 
-static void cooker_auto_control_loop(struct k_timer *timer);
-K_TIMER_DEFINE(auto_loop_timer, cooker_auto_control_loop, NULL);
+static void cooker_control_loop(struct k_timer *timer);
+K_TIMER_DEFINE(cooker_control_loop_timer, cooker_control_loop, NULL);
 
 static const struct adc_channel_cfg adc_cfg = {
 		.gain             = ADC_GAIN_1_6,
@@ -112,10 +113,10 @@ void is_on_loop()
 	k_sem_give(&is_in_on_loop);
 }
 
-void auto_control_loop_worker()
+void cooker_control_loop_worker()
 {
 	if(k_mutex_lock(&cooker_control_mutex, K_NO_WAIT) != 0) {
-		k_timer_stop(&auto_loop_timer);
+		cooker_stop_control_loop();
 		return;
 	}
 
@@ -126,7 +127,7 @@ void auto_control_loop_worker()
 		k_mutex_unlock(&cooker_control_mutex);
 		return;
 	}
-	LOG_INF("calculate output level with %d", value);
+	LOG_INF("Setpoint = %d ; value = %d", control_loop_pid.setpoint, value);
 	s32_t output = pid_calc_control_effort(&control_loop_pid, value) / 100;
 	const s32_t cutoff = (255 * 500) / 3500;
 
@@ -136,7 +137,7 @@ void auto_control_loop_worker()
 		if (get_output_io_level() != 0) {
 			set_output_io_level(0);
 		}
-		k_timer_start(&auto_loop_timer, K_SECONDS(2), 0);
+		cooker_start_control_loop(K_SECONDS(2));
 		k_mutex_unlock(&cooker_control_mutex);
 		return;
 	}
@@ -149,7 +150,7 @@ void auto_control_loop_worker()
 	output /= 255 - cutoff;
 	set_output_power_level((u8_t)output);
 
-	k_timer_start(&auto_loop_timer, K_SECONDS(2), 0);
+	cooker_start_control_loop(K_SECONDS(2));
 	k_mutex_unlock(&cooker_control_mutex);
 }
 
@@ -166,11 +167,11 @@ void io_switched(struct device *gpiob, struct gpio_callback *cb,
 	}
 }
 
-static void cooker_auto_control_loop(struct k_timer *timer)
+static void cooker_control_loop(struct k_timer *timer)
 {
-	k_thread_create(&auto_control_loop_data, auto_control_loop_stack,
-			K_THREAD_STACK_SIZEOF(auto_control_loop_stack),
-			auto_control_loop_worker,
+	k_thread_create(&cooker_control_loop_data, cooker_control_loop_stack,
+			K_THREAD_STACK_SIZEOF(cooker_control_loop_stack),
+			cooker_control_loop_worker,
 			NULL, NULL, NULL,
 			PRIORITY + 1, 0, K_NO_WAIT);
 }
@@ -219,8 +220,12 @@ void cooker_init()
 	gpio_pin_write(gpio_dev, IO_OUTPUT_PIN, 0);
 }
 
-void cooker_start_auto_control_loop(void) {
-	k_timer_start(&auto_loop_timer, K_NO_WAIT, 0);
+void cooker_start_control_loop(s32_t duration) {
+	k_timer_start(&cooker_control_loop_timer, duration, 0);
+}
+
+void cooker_stop_control_loop(void) {
+	k_timer_stop(&cooker_control_loop_timer);
 }
 
 /* 0xa8 (min) to 0x00 (max) */
@@ -324,4 +329,24 @@ void set_status_led_level(u8_t level)
 			PERIOD, period)) {
 		LOG_ERR("pwm pin set fails\n");
 	}
+}
+
+void cooker_set_control_setpoint(s32_t setpoint)
+{
+	control_loop_pid.setpoint = setpoint;
+}
+
+void cooker_set_control_pid_p_value(s32_t p)
+{
+	control_loop_pid.p = p;
+}
+
+void cooker_set_control_pid_i_value(s32_t i)
+{
+	control_loop_pid.i = i;
+}
+
+void cooker_set_control_pid_d_value(s32_t d)
+{
+	control_loop_pid.d = d;
 }

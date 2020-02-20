@@ -64,11 +64,6 @@ s16_t buf_start = 0;
 s16_t buf_end   = 0;
 u32_t sense_interval_mult = 1;
 
-static bool is_client_connected  = false;
-bool is_sync_enabled = false;
-
-extern u8_t cts_notify_enabled;
-
 struct bt_le_adv_param *adv_params = BT_LE_ADV_CONN_NAME_ID;
 
 static const struct bt_data ad[] = {

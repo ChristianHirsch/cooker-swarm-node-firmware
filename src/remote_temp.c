@@ -6,6 +6,8 @@
 
 #include <logging/log.h>
 
+#include "ess.h"
+
 static bt_addr_le_t *remote_addr = NULL;
 static struct bt_conn *remote_conn = NULL;
 static struct bt_gatt_read_params read_params;
@@ -64,7 +66,6 @@ static int remote_connect(void)
 		return -1;
 
 	char addr[BT_ADDR_LE_STR_LEN];
-	int err;
 
 	bt_addr_le_to_str(remote_addr, addr, sizeof(addr));
 
@@ -142,12 +143,12 @@ static void remote_read_worker(void *b1, void *b2, void *b3)
 	if (remote_conn == NULL) {
 		if (remote_connect() != 0) {
 			LOG_ERR("Error connecting to remote device");
-			return 0;
+			return;
 		}
 		LOG_INF("Waiting for connection");
 		if(k_sem_take(&connect_remote_device, K_SECONDS(30)) != 0) {
 			LOG_ERR("Connect to remote device timed out");
-			return 0;
+			return;
 		}
 		k_sem_give(&connect_remote_device);
 	}

@@ -30,29 +30,41 @@ u16_t remote_temp_handle;
 
 extern struct k_mutex cooker_control_mutex;
 
-static void cooker_input_io_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_input_io_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value);
-static ssize_t read_cooker_input_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_get_input_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset);
 
-static void cooker_input_power_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_input_power_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value);
-static ssize_t read_cooker_input_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_get_input_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset);
 
-static void cooker_output_io_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_output_io_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value);
-static ssize_t write_cooker_output_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_set_output_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                         const void *buf, u16_t len, u16_t offset,
                         u8_t flags);
 
-static void cooker_output_power_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_output_power_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value);
-static ssize_t write_cooker_output_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_set_output_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                         const void *buf, u16_t len, u16_t offset,
                         u8_t flags);
 
-static ssize_t write_cooker_remote_temp_probe(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_set_remote_temp_probe(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                        const void *buf, u16_t len, u16_t offset,
+                        u8_t flags);
+
+static ssize_t cos_set_control_state(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                        const void *buf, u16_t len, u16_t offset,
+                        u8_t flags);
+
+static ssize_t cos_set_control_setpoint(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                        const void *buf, u16_t len, u16_t offset,
+                        u8_t flags);
+
+static ssize_t cos_set_control_pid(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                         const void *buf, u16_t len, u16_t offset,
                         u8_t flags);
 
@@ -62,37 +74,52 @@ BT_GATT_SERVICE_DEFINE(cooker_service_cvs,
 
 	BT_GATT_CHARACTERISTIC(BT_UUID_COS_INPUT_IO,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
-			       BT_GATT_PERM_READ, read_cooker_input_io_level, NULL, NULL),
-	BT_GATT_CCC(cooker_input_io_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+			       BT_GATT_PERM_READ, cos_get_input_io_level, NULL, NULL),
+	BT_GATT_CCC(cos_set_input_io_ccc_cfg, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 	
 	BT_GATT_CHARACTERISTIC(BT_UUID_COS_INPUT_POWER,
 			       BT_GATT_CHRC_READ | BT_GATT_CHRC_NOTIFY,
-			       BT_GATT_PERM_READ, read_cooker_input_power_level, NULL, NULL),
-	BT_GATT_CCC(cooker_input_power_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+			       BT_GATT_PERM_READ, cos_get_input_power_level, NULL, NULL),
+	BT_GATT_CCC(cos_set_input_power_ccc_cfg, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 	
 	BT_GATT_CHARACTERISTIC(BT_UUID_COS_OUTPUT_IO,
 			       BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
-			       BT_GATT_PERM_WRITE, NULL, write_cooker_output_io_level, NULL),
-	BT_GATT_CCC(cooker_output_io_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+			       BT_GATT_PERM_WRITE, NULL, cos_set_output_io_level, NULL),
+	BT_GATT_CCC(cos_set_output_io_ccc_cfg, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 	
 	BT_GATT_CHARACTERISTIC(BT_UUID_COS_OUTPUT_POWER,
 			       BT_GATT_CHRC_WRITE | BT_GATT_CHRC_NOTIFY,
-			       BT_GATT_PERM_WRITE, NULL, write_cooker_output_power_level, NULL),
-	BT_GATT_CCC(cooker_output_power_ccc_cfg_changed, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
+			       BT_GATT_PERM_WRITE, NULL, cos_set_output_power_level, NULL),
+	BT_GATT_CCC(cos_set_output_power_ccc_cfg, BT_GATT_PERM_READ | BT_GATT_PERM_WRITE),
 
 	BT_GATT_CHARACTERISTIC(BT_UUID_COS_REMOTE_TEMP_PROBE,
+				BT_GATT_CHRC_WRITE,
+				BT_GATT_PERM_WRITE, NULL, cos_set_remote_temp_probe, NULL),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_NONE),
+
+	BT_GATT_CHARACTERISTIC(BT_UUID_COS_CONTROL_STATE,
+				BT_GATT_CHRC_WRITE,
+				BT_GATT_PERM_WRITE, NULL, cos_set_control_state, NULL),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_NONE),
+
+	BT_GATT_CHARACTERISTIC(BT_UUID_COS_CONTROL_SETPOINT,
 			BT_GATT_CHRC_WRITE,
-			BT_GATT_PERM_WRITE, NULL, write_cooker_remote_temp_probe, NULL),
-	BT_GATT_CCC(NULL, NULL),
+			BT_GATT_PERM_WRITE, NULL, cos_set_control_setpoint, NULL),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_NONE),
+
+	BT_GATT_CHARACTERISTIC(BT_UUID_COS_CONTROL_PID,
+			BT_GATT_CHRC_WRITE,
+			BT_GATT_PERM_WRITE, NULL, cos_set_control_pid, NULL),
+	BT_GATT_CCC(NULL, BT_GATT_PERM_NONE),
 );
 
-static void cooker_input_io_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_input_io_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value)
 {
 	input_io_notify_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
-static ssize_t read_cooker_input_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_get_input_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset)
 {
 	u8_t value;
@@ -102,13 +129,13 @@ static ssize_t read_cooker_input_io_level(struct bt_conn *conn, const struct bt_
 	return err;
 }
 
-static void cooker_input_power_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_input_power_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value)
 {
 	input_power_notify_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
-static ssize_t read_cooker_input_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_get_input_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 			 void *buf, u16_t len, u16_t offset)
 {
 	u8_t value = get_input_power_level();
@@ -118,13 +145,13 @@ static ssize_t read_cooker_input_power_level(struct bt_conn *conn, const struct 
 	return err;
 }
 
-static void cooker_output_io_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_output_io_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value)
 {
 	output_io_notify_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
-static ssize_t write_cooker_output_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_set_output_io_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                         const void *buf, u16_t len, u16_t offset,
                         u8_t flags)
 {
@@ -146,13 +173,13 @@ static ssize_t write_cooker_output_io_level(struct bt_conn *conn, const struct b
         return len;
 }
 
-static void cooker_output_power_ccc_cfg_changed(const struct bt_gatt_attr *attr,
+static void cos_set_output_power_ccc_cfg(const struct bt_gatt_attr *attr,
 				 u16_t value)
 {
 	output_power_notify_enabled = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
 }
 
-static ssize_t write_cooker_output_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_set_output_power_level(struct bt_conn *conn, const struct bt_gatt_attr *attr,
                         const void *buf, u16_t len, u16_t offset,
                         u8_t flags)
 {
@@ -174,7 +201,7 @@ static ssize_t write_cooker_output_power_level(struct bt_conn *conn, const struc
         return len;
 }
 
-static ssize_t write_cooker_remote_temp_probe(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+static ssize_t cos_set_remote_temp_probe(struct bt_conn *conn, const struct bt_gatt_attr *attr,
 		const void *buf, u16_t len, u16_t offset,
 		u8_t flags)
 {
@@ -196,7 +223,60 @@ static ssize_t write_cooker_remote_temp_probe(struct bt_conn *conn, const struct
 	remote_set_addr(&remote_temp_device);
 	remote_set_handle(remote_temp_handle);
 
-	cooker_start_auto_control_loop();
+	return len;
+}
+
+static ssize_t cos_set_control_state(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                        const void *buf, u16_t len, u16_t offset,
+                        u8_t flags)
+{
+	u8_t state;
+	if ((offset + len) > sizeof(state)) {
+		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+	}
+
+	memcpy((&state) + offset, buf, len);
+
+	if (state == 1) {
+		cooker_start_control_loop(K_NO_WAIT);
+	} else {
+		cooker_stop_control_loop();
+	}
+
+	return len;
+}
+
+static ssize_t cos_set_control_setpoint(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                        const void *buf, u16_t len, u16_t offset,
+                        u8_t flags)
+{
+	s32_t setpoint;
+	if ((offset + len) > sizeof(setpoint)) {
+		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+	}
+
+	memcpy((&setpoint) + offset, buf, len);
+
+	cooker_set_control_setpoint(setpoint);
+
+	return len;
+}
+
+static ssize_t cos_set_control_pid(struct bt_conn *conn, const struct bt_gatt_attr *attr,
+                        const void *buf, u16_t len, u16_t offset,
+                        u8_t flags)
+{
+	s32_t values[10];
+
+	if ((offset + len) > sizeof(values)) {
+		return BT_GATT_ERR(BT_ATT_ERR_INVALID_OFFSET);
+	}
+
+	memcpy((&values) + offset, buf, len);
+
+	cooker_set_control_pid_p_value(values[0]);
+	cooker_set_control_pid_p_value(values[1]);
+	cooker_set_control_pid_p_value(values[2]);
 
 	return len;
 }

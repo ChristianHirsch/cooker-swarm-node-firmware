@@ -36,3 +36,17 @@
  */
 #define BT_UUID_COS_REMOTE_TEMP_PROBE	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x77e12a05, 0x37af, 0x11ea, 0xa7a1, 0x507b9de20712))
 
+/** @def BT_UUID_COS_CONTROL_STATE
+ *  @brief COS Characteristic automatic control state
+ */
+#define BT_UUID_COS_CONTROL_STATE		BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x77e12a06, 0x37af, 0x11ea, 0xa7a1, 0x507b9de20712))
+
+/** @def BT_UUID_COS_CONTROL_SETPOINT
+ *  @brief COS Characteristic automatic control setvalue
+ */
+#define BT_UUID_COS_CONTROL_SETPOINT	BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x77e12a07, 0x37af, 0x11ea, 0xa7a1, 0x507b9de20712))
+
+/** @def BT_UUID_COS_CONTROL_PID
+ *  @brief COS Characteristic automatic control PID values
+ */
+#define BT_UUID_COS_CONTROL_PID			BT_UUID_DECLARE_128(BT_UUID_128_ENCODE(0x77e12a08, 0x37af, 0x11ea, 0xa7a1, 0x507b9de20712))

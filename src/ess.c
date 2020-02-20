@@ -8,6 +8,8 @@
 
 #include <logging/log.h>
 
+#include "remote_temp.h"
+
 static u8_t enable_temp_notifications;
 
 LOG_MODULE_REGISTER(ess);
@@ -30,11 +32,6 @@ static void ess_temp_ccc_cfg_changed(const struct bt_gatt_attr *attr,
 				 u16_t value)
 {
 	enable_temp_notifications = (value == BT_GATT_CCC_NOTIFY) ? 1 : 0;
-
-	if (!enable_temp_notifications)
-		return;
-
-	remote_read_handle(/*&temp_buf*/NULL);
 }
 
 static ssize_t read_remote_temp(struct bt_conn *conn, const struct bt_gatt_attr *attr,
